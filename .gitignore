@@ -16,7 +16,7 @@ submission/
 build/darknet/*
 !build/darknet/YoloWrapper.cs
 .fuse*
-non_necessary/
+unnecessary/
 compare_recycle/
 compare_plate/
 compare_coco80/
