@@ -1,0 +1,6 @@
+classes=1
+train  = data/train.txt
+valid  = data/train.txt
+names = data/license_plate.names
+backup = backup/
+

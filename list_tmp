@@ -1,0 +1,7 @@
+3rdparty
+build
+cmake
+CMakeLists.txt
+CMakeSettings.json
+darknet_video.py
+scripts

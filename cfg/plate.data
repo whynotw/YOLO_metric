@@ -1,0 +1,7 @@
+classes= 1
+train  = data/train.txt
+valid  = data/train.txt
+names = data/plate.names
+backup = backup
+eval=coco
+
