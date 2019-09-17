@@ -22,8 +22,8 @@ Just `make clean` and `make` to compile darknet.
 
 Directory to save results: `DIRNAME_TEST`
 
-Put testing data list to `test.txt` in `DIRNAME_TEST`. Each line in `test.txt` is a path of an `.jpg` image. 
-Also put its `.txt` file of label information to the associated path of in YOLO-style 
+Put testing data list to `test.txt` in the directory `DIRNAME_TEST`. Each line in `test.txt` is a path of a `.jpg` image. 
+Also put its `.txt` file (label information) to the associated path of in YOLO-style 
 (replace directory name `images` to `labels` and replace file extension `.jpg` to `.txt`).
 
 # Inference
@@ -31,14 +31,13 @@ Also put its `.txt` file of label information to the associated path of in YOLO-
 Change settings in `modulized/save_label_as_yolo_format.py`, including:
 
 Model settings: `FILE_CFG`, `FILE_WEIGHTS`, `FILE_DATA` and `THRESH_YOLO`
-(Small `THRESH_YOLO` is suggested, because we can change `THRESH_CONFIDENCE` from small to large to get different evaluation results)
+(Small `THRESH_YOLO` is suggested, because we can tune `THRESH_CONFIDENCE` from small to large values during evalution to get different results)
 
 Directory to save results: `DIRNAME_TEST`
 
 ---
 
-Use `python modulized/save_label_as_yolo_format.py` to get the inference result, which will be saved in `{DIRNAME_TEST}/labels_prediction`.
-
+Use `python modulized/save_label_as_yolo_format.py` to get the inference result, which will be saved in directory `{DIRNAME_TEST}/labels_prediction`.
 
 # Calculate mean Average Precision (mAP) and confusion matrix
 
@@ -52,7 +51,7 @@ Threshold of IOU for calculating confusion matrix: `THRESH_IOU_CONFUSION`
 
 ---
 
-Comment and uncomment last part of `modulized/compare_simple.py` to control desired the results (`metric.get_mAP` and `metric.get_confusion`).
+Comment or uncomment the last part of `modulized/compare_simple.py` to control desired the results (`metric.get_mAP` and `metric.get_confusion`).
 
 Use `python modulized/compare_simple.py` to show the results like:
 
@@ -74,7 +73,7 @@ metric: VOC12
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ```
 
-`[total]` is directly average the AP of all categories and `[weighted]` is using number of objects of each categories to weighted average the AP.
+`[total] mAP` is directly average the AP of all categories and `[weighted] mAP` is using number of objects of each category to weighted average the AP.
 
 `#` means object number of each category and its percentage.
 
@@ -108,4 +107,4 @@ Groundtruth [motorbike]          22           0           0         196         
 ...
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 ```
-Where `none` in `Groundtruth` means false positive and `none` in `Prediction` means false negative.
+Where the `none` row of `Groundtruth` means false positive and the `none` cloumn of `Prediction` means false negative.
