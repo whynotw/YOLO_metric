@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Yolo-v3 and Yolo-v2 for Windows and Linux
 ### (neural network for object detection) - Tensor Cores can be used on [Linux](https://github.com/AlexeyAB/darknet#how-to-compile-on-linux) and [Windows](https://github.com/AlexeyAB/darknet#how-to-compile-on-windows-using-vcpkg)
 
@@ -629,3 +630,7 @@ public:
 #endif
 };
 ```
+=======
+# YOLO_metric
+Calculate mean Average Precision (mAP) and confusion matrix for object detection models. Bounding box information for groundtruth and prediction is YOLO training dataset format.
+>>>>>>> ef7d3e4f63fff098a710c9de5d7b4d5e83889e19
