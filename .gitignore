@@ -18,6 +18,7 @@ build/darknet/*
 .fuse*
 unnecessary/
 compare_*/*
+compare_plate_arlen/
 
 
 # OS Generated #
