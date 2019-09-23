@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Object Detection Metric for YOLO
 
 Calculate mean Average Precision (mAP) and confusion matrix for object detection models. Bounding box information for groundtruth and prediction is YOLO training dataset format.
@@ -223,4 +222,3 @@ Groundtruth [motorbike]          22           0           0         196         
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 ```
 Where the `none` row of `Groundtruth` means false positive and the `none` cloumn of `Prediction` means false negative.
->>>>>>> 58ce3362daf94ac22be54a38a24ab52f967e3641

@@ -17,9 +17,7 @@ build/darknet/*
 !build/darknet/YoloWrapper.cs
 .fuse*
 unnecessary/
-compare_recycle/
-compare_plate/
-compare_coco80/
+compare_*/
 
 
 # OS Generated #
