@@ -17,7 +17,7 @@ build/darknet/*
 !build/darknet/YoloWrapper.cs
 .fuse*
 unnecessary/
-compare_*/
+compare_*/*
 
 
 # OS Generated #
