@@ -136,31 +136,28 @@ class ObjectDetectionMetric():
         mAP = np.mean(APs)
         number_groundtruth_total = sum(self.number_groundtruth_all)+1e-10
         weighted_mAP = np.dot(APs,self.number_groundtruth_all) / number_groundtruth_total
+        if not conclude:
+           return # TODO return what you want
         # print the results
         length_name = max([len(str(name)) for name in self.names_class]+[8])
         length_number = len(str(number_groundtruth_total))
         spacing = "- "*(int(20+(length_name+length_number)/2))
-        content = ""
-        content += spacing+"\nMean Average Precision\n"+spacing
-        content += "\nmetric: %s\n"%type_mAP
+        print(spacing+"\nMean Average Precision\n"+spacing)
+        print("metric: %s"%type_mAP)
         for no_class in range(self.number_classes):
-            content += "[%*s]      AP: %6.2f %%   #: %*d (%6.2f %%)\n"%\
-                       (length_name,self.names_class[no_class],
-                        APs[no_class]*1e2,
-                        length_number,self.number_groundtruth_all[no_class],
-                        self.number_groundtruth_all[no_class]*1e2/number_groundtruth_total)
-        content += "[%*s]     mAP: %6.2f %%   #: %*d (100.00 %%)\n"%\
-                    (length_name,"total",
-                     mAP*1e2,
-                     length_number,number_groundtruth_total)
-        content += "[%*s]     mAP: %6.2f %%\n"%\
-                   (length_name,"weighted",
-                    weighted_mAP*1e2)
-        content += spacing
-        if conclude:
-            print(content)
-        else:
-            return content
+            print("[%*s]      AP: %6.2f %%   #: %*d (%6.2f %%)"%\
+                  (length_name,self.names_class[no_class],
+                   APs[no_class]*1e2,
+                   length_number,self.number_groundtruth_all[no_class],
+                   self.number_groundtruth_all[no_class]*1e2/number_groundtruth_total))
+        print("[%*s]     mAP: %6.2f %%   #: %*d (100.00 %%)"%\
+              (length_name,"total",
+               mAP*1e2,
+               length_number,number_groundtruth_total))
+        print("[%*s]     mAP: %6.2f %%"%\
+              (length_name,"weighted",
+               weighted_mAP*1e2))
+        print(spacing)
 
     def get_area(self,no_class,thresh_IOU,threshes_recall):
         if len(self.IOUs_all[no_class]) == 0:
@@ -217,53 +214,50 @@ class ObjectDetectionMetric():
             for no_class_groundtruth in range(self.number_classes):
                 matrix_confusion[no_class_groundtruth,-1] += np.sum( infos[:,0]==no_class_groundtruth )
 
+        if not conclude:
+           return # TODO return what you want
         # print the results
         fields = self.names_class+["none"]
         length_name = max([len(str(s)) for s in fields]+[5])
         spacing = "- "*max((int(7+((length_name+3)*(self.number_classes+3))/2)),
                            length_name+33)
-        content = ""
-        content += spacing+"\nConfusion Matrix\n"+spacing+"\n"
-        content += ("thresh_confidence: %f"%thresh_confidence).rstrip("0")+"\n"
-        content += ("thresh_IOU       : %f"%thresh_IOU).rstrip("0")+"\n"
+        print(spacing+"\nConfusion Matrix\n"+spacing)
+        print(("thresh_confidence: %f"%thresh_confidence).rstrip("0"))
+        print(("thresh_IOU       : %f"%thresh_IOU).rstrip("0"))
         matrix_confusion = np.uint32(matrix_confusion)
-        content2 = " "*(length_name+3+12)
+        content = " "*(length_name+3+12)
         for j in range(self.number_classes+1):
-            content2 += "[%*s] "%(length_name,fields[j])
-        content2 += "[%*s] \n"%(length_name,"total")
-        content2 += "%*sPrediction\n"%(12+(len(content2)-10)/2,"")
-        content += content2
-        content3 = ""
+            content += "[%*s] "%(length_name,fields[j])
+        content += "[%*s] "%(length_name,"total")
+        print("%*sPrediction"%(12+(len(content)-10)/2,""))
+        print(content)
         for i in range(self.number_classes+1):
-            content3 = "Groundtruth " if i==int((self.number_classes+1)/2) else " "*12
-            content3 += "[%*s] "%(length_name,fields[i])
+            content = "Groundtruth " if i==int((self.number_classes+1)/2) else " "*12
+            content += "[%*s] "%(length_name,fields[i])
             for j in range(self.number_classes+1):
                 if i==j==self.number_classes:
                     break
-                content3 += "%*d "%(length_name+2,matrix_confusion[i,j])
+                content += "%*d "%(length_name+2,matrix_confusion[i,j])
             if i < self.number_classes:
-                content3 += "%*d "%(length_name+2,self.number_groundtruth_all[i])
-            content += content3+"\n"
-        content += " "*12+"[%*s] "%(length_name,"total")
+                content += "%*d "%(length_name+2,self.number_groundtruth_all[i])
+            print(content)
+        content = " "*12+"[%*s] "%(length_name,"total")
         for j in range(self.number_classes):
             content += "%*d "%(length_name+2,self.number_prediction_all[j])
             #content += "%*d "%(length_name+2,sum(matrix_confusion[:,j]))
-        content += "\n"+spacing+"\n"
+        print(content)
+        print(spacing)
         for no_class,name in enumerate(self.names_class):
             precision = matrix_confusion[no_class,no_class]/(self.number_prediction_all[ no_class]+eps)
             recall    = matrix_confusion[no_class,no_class]/(self.number_groundtruth_all[no_class]+eps)
-            content += ("[%*s]   precision: %6.2f %%"
-                              "     recall: %6.2f %%"
-                             "     avg IOU: %6.2f %%\n")%(\
-                    length_name,name,
-                    1e2*precision,
-                    1e2*recall,
-                    1e2*IOUs_avg[no_class])
-        content += spacing
-        if conclude:
-            print(content)
-        else:
-            return content
+            print(("[%*s]   precision: %6.2f %%"
+                         "     recall: %6.2f %%"
+                        "     avg IOU: %6.2f %%")%(\
+                length_name,name,
+                1e2*precision,
+                1e2*recall,
+                1e2*IOUs_avg[no_class]))
+        print(spacing)
 
 if __name__ == "__main__":
 

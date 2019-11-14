@@ -108,27 +108,28 @@ predict_image.restype = POINTER(c_float)
 
 class YOLODetector():
 
-    def __init__(self,file_cfg,file_weights,file_data,thresh_yolo,whitelist):
+    def __init__(self,file_cfg,file_weights,file_data,thresh_yolo,letter_box,whitelist):
         self._net = load_net(file_cfg, file_weights, 0)
         self._meta = load_meta(file_data)
-        self.whitelist = whitelist
         self.thresh_yolo = thresh_yolo
-        self._getSize(file_cfg)
-        self._image_darknet = make_image(self._width_yolo,self._height_yolo,3)
+        self.letter_box = letter_box
+        self.whitelist = whitelist
+        self._get_size(file_cfg)
+        self._image_darknet = make_image(self.width_yolo,self.height_yolo,3)
 
-    def _getSize(self,file_cfg):
+    def _get_size(self,file_cfg):
         with open(file_cfg) as f:
             data = f.readlines()
-        self._height_yolo = -1
-        self._width_yolo = -1
+        self.height_yolo = -1
+        self.width_yolo = -1
         for datum in data:
             datum = datum.strip("\n")
             if "#" not in datum:
                 if "height" in datum:
-                    self._height_yolo = int(datum.split("=")[-1])
+                    self.height_yolo = int(datum.split("=")[-1])
                 elif "width" in datum:
-                    self._width_yolo = int(datum.split("=")[-1])
-        if self._height_yolo <= 0 or self._width_yolo <= 0:
+                    self.width_yolo = int(datum.split("=")[-1])
+        if self.height_yolo <= 0 or self.width_yolo <= 0:
             print("fail to read width or height in .cfg file")
 
     def detect(self,data):
@@ -137,10 +138,22 @@ class YOLODetector():
         data.info["tag"] = self._results_yolo_to_bboxes()
         data.info["results"] = self._results
 
+    def _fill_letter_box(self,image0):
+        image = np.full((self.height_yolo,self.width_yolo,3),127,dtype=np.uint8)
+        height_image0,width_image0,_ = image0.shape
+        self._scaling = min( float( self.width_yolo)/ width_image0 , float(self.height_yolo)/height_image0 )
+        height_image = int( height_image0 * self._scaling )
+        width_image  = int(  width_image0 * self._scaling )
+        image[:height_image,:width_image,:] = cv2.resize(image0, (width_image,height_image))
+        return image
+
     def _preprocess(self,image):
         self.image_origin = image.copy()
         self._height_image, self._width_image = self.image_origin.shape[:2]
-        image_resized = cv2.resize(self.image_origin,(self._width_yolo,self._height_yolo))
+        if self.letter_box:
+            image_resized = self._fill_letter_box(self.image_origin)
+        else:
+            image_resized = cv2.resize(self.image_origin,(self.width_yolo,self.height_yolo))
         self._image_bytes = cv2.cvtColor(image_resized, cv2.COLOR_BGR2RGB).tobytes()
 
     #def detect(net, meta, image_bytes, thresh=.5, hier_thresh=.5, nms=.45):
@@ -153,29 +166,30 @@ class YOLODetector():
         num = pnum[0]
         if (nms): do_nms_obj(dets, num, self._meta.classes, nms);
     
+        if self.letter_box:
+            multiplier_x = multiplier_y = 1/self._scaling
+        else:
+            multiplier_x = float( self._width_image)/ self.width_yolo
+            multiplier_y = float(self._height_image)/self.height_yolo
         results = []
         for j in range(num):
             for i in range(self._meta.classes):
                 if dets[j].prob[i] > 0:
                     b = dets[j].bbox
-                    results.append((self._meta.names[i], dets[j].prob[i], (b.x, b.y, b.w, b.h)))
+                    results.append((self._meta.names[i], dets[j].prob[i], (b.x*multiplier_x,
+                                                                           b.y*multiplier_y,
+                                                                           b.w*multiplier_x,
+                                                                           b.h*multiplier_y)))
         self._results = sorted(results, key=lambda x: x[1], reverse=True)
         #free_image(image_darknet)
         free_detections(dets, num)
     
-    def _constraint(self,value,lower,upper):
-        return min(max(int(value),lower),upper)
-    
-    def _coordConvert(self,coord):
+    def _coord_convert(self,coord):
         x_center, y_center, x_width, y_height = coord
-        x_center = float(x_center)*self._width_image /self._width_yolo
-        y_center = float(y_center)*self._height_image/self._height_yolo
-        x_width  = float(x_width )*self._width_image /self._width_yolo
-        y_height = float(y_height)*self._height_image/self._height_yolo
-        x_width  = self._constraint(x_width, 0,self._width_image)
-        y_height = self._constraint(y_height,0,self._height_image)
-        left     = self._constraint(x_center-x_width/2. ,0,self._width_image)
-        top      = self._constraint(y_center-y_height/2.,0,self._height_image)
+        x_width  = np.clip(int(x_width)              ,0 ,self._width_image )
+        y_height = np.clip(int(y_height)             ,0 ,self._height_image)
+        left     = np.clip(int(x_center-x_width/2.)  ,0 ,self._width_image )
+        top      = np.clip(int(y_center-y_height/2.) ,0 ,self._height_image)
         return left, top, x_width, y_height
     
     def _results_yolo_to_bboxes(self):
@@ -191,7 +205,7 @@ class YOLODetector():
         bboxes = []
         for key in self.resultsDict.keys():
             bbox = {}
-            objectPicX, objectPicY, objectWidth, objectHeight = self._coordConvert(key) # key is coordinate of bounding box
+            objectPicX, objectPicY, objectWidth, objectHeight = self._coord_convert(key) # key is coordinate of bounding box
             if objectWidth==0 or objectHeight==0:
                 break
             bbox["objectPicX"] = objectPicX
@@ -204,14 +218,14 @@ class YOLODetector():
             bboxes.append(bbox)
         return bboxes
 
-    def _drawLabel(self, data, text, left, top, right, bottom):
+    def _draw_label(self, data, text, left, top, right, bottom):
         cv2.rectangle(data.image_labeled,(left,top),(right,bottom),(  0,  0,  0,),3)
         cv2.rectangle(data.image_labeled,(left,top),(right,bottom),(  0,  0,255,),2)
         text = str(text).upper()
         cv2.putText(data.image_labeled, text, (left+15,top-15), cv2.FONT_HERSHEY_COMPLEX, 1, (  0,   0,   0), 2)
         cv2.putText(data.image_labeled, text, (left+15,top-15), cv2.FONT_HERSHEY_COMPLEX, 1, (255, 255, 255), 1)
 
-    def _checkDrawLabels(self,data):
+    def _check_draw_labels(self,data):
         if not data.drawed:
             #for bbox in data.json_label.get("tag",[]):
             for bbox in data.info.get("tag",[]):
@@ -220,7 +234,7 @@ class YOLODetector():
                 right  = bbox.get("objectWidth")+left
                 bottom = bbox.get("objectHeight")+top
                 text   = " ".join(bbox.get("objectTypes"))
-                self._drawLabel(data, text, left, top, right, bottom)
+                self._draw_label(data, text, left, top, right, bottom)
             data.drawed = True
     
     def show(self,data,draw_labels=None,to_draw=False,time_wait=1):
@@ -228,7 +242,7 @@ class YOLODetector():
             if draw_labels:
                 draw_labels(data)
             else:
-                self._checkDrawLabels(data)
+                self._check_draw_labels(data)
         cv2.imshow("image",
                    data.image_labeled if to_draw else data.image_origin)
         key = cv2.waitKey(time_wait) & 0xff
@@ -239,7 +253,7 @@ class YOLODetector():
  
     def save(self,data,to_draw):
         if to_draw and not self.drawed:
-            self._checkDrawLabels()
+            self._check_draw_labels()
         cv2.imwrite(self.filename,
                     data.image_labeled if to_draw else data.image_origin)
 
@@ -261,7 +275,7 @@ if __name__ == "__main__":
 
     # yolov3-tiny
     file_cfg = b"cfg/yolov3-tiny.cfg"
-    file_weights = b"weights/yolov3-tiny.weights"
+    file_weights = b"../weights/yolov3-tiny.weights"
     file_data = b"cfg/coco.data"
 
     # yolov3-tiny for license plate
@@ -271,6 +285,8 @@ if __name__ == "__main__":
 
     # settings
     thresh_yolo = 0.1
+    #letter_box = False
+    letter_box = True
 
     # prediction with some constraint
     # if whitelist is empty, detect everything
@@ -283,6 +299,7 @@ if __name__ == "__main__":
                         file_weights,
                         file_data,
                         thresh_yolo,
+                        letter_box,
                         whitelist)
     # prediction
     for _ in range(100):
@@ -295,7 +312,7 @@ if __name__ == "__main__":
         # YOLO
         yolo.detect(data)
         #yolo.save(to_draw=False)
-        #yolo.show(to_draw=True)
+        yolo.show(data,to_draw=True)
         print(data.info)
 
         # prediction ends

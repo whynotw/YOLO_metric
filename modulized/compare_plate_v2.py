@@ -1,16 +1,16 @@
 import numpy as np
 import cv2
 import os
-from module import labels_module, metric_module
+from module import labels_module, metric_module, metric_license_plate_module
 #from module import metric_module_not_support_confusion_matrix_diff_thresh_IOU as metric_module
 
 # settings
 
-DIRNAME_TEST = "compare_plate/darknet_train_yolov3_tiny_car_plate_generated15_10200/test001"
-#DIRNAME_TEST = "compare_plate_openvino/darknet_train_yolov3_tiny_car_plate03_old_ocr05_02_19_GPU_FP32/test001/"
+#DIRNAME_TEST = "compare_plate/darknet_train_yolov3_tiny_car_plate_generated13_10200/test001"
+#DIRNAME_TEST = "compare_plate_openvino/darknet_train_yolov3_tiny_car_plate03_old_ocr05_02_19_CPU_FP32/test001/"
 #DIRNAME_TEST = "compare_plate_real/darknet_train_yolov3_tiny_car_plate03_old/test001/"
 #DIRNAME_TEST = "compare_plate_real/darknet_train_yolov3_tiny_car_plate03_old_ocr05_02_19/test001/"
-#DIRNAME_TEST = "compare_plate_real/tmp/test001/"
+DIRNAME_TEST = "compare_plate_real/tmp/test001/"
 DIRNAME_PREDICTION = os.path.join(DIRNAME_TEST,"labels_prediction")
 FILENAME_GROUNDTRUTH = os.path.join(DIRNAME_TEST,"test.txt")
 
@@ -21,12 +21,13 @@ with open(FILENAME_GROUNDTRUTH) as f:
     IMAGENAMES_GROUNDTRUTH = f.read().splitlines()
 #print(IMAGENAMES_GROUNDTRUTH)
 
-THRESH_CONFIDENCE      = 0.1
-THRESH_IOU_CONFUSION   = 0.5
-THRESH_CONFIDENCE_DRAW = 0.1
+THRESH_CONFIDENCE       = 0.1
+THRESH_CONFIDENCE_PLATE = 0.0 # TODO fix bug for unmatched condition, sending data to metric and lp_metric should be the same
+THRESH_IOU_CONFUSION    = 0.1
+THRESH_CONFIDENCE_DRAW  = 0.1
 SCALE_REDUCTION = 0.5
 SHOW_FALSE = 0
-SHOW_TOTAL = 0
+SHOW_TOTAL = 1
 TIME_WAIT  = 0
 SAVE_FALSE = 0
 SAVE_TOTAL = 0
@@ -38,7 +39,10 @@ DRAW       = ( DRAW_FALSE | DRAW_TOTAL )
 NAMES_CLASS = ["plate"]
 NUMBER_CLASSES = len(NAMES_CLASS)
 
+LENGTH_PLATE_NUMBER = 7
+
 ###
+
 print("# of data: %d"%len(IMAGENAMES_GROUNDTRUTH))
 
 label_generator = labels_module.LabelGenerator(number_color = NUMBER_CLASSES+1)
@@ -51,6 +55,10 @@ label_generator.get_legend(size=5,
 
 metric = metric_module.ObjectDetectionMetric(names_class=NAMES_CLASS,
                                              check_class_first=False)
+
+lp_metric = metric_license_plate_module.LicensePlateMetric(length_plate_number=LENGTH_PLATE_NUMBER)
+# make sure data of groundtruth and prediction include plate number or not
+include_plate = True # assume True in the beginning
 
 def convert_yolo_train_to_opencv(coord_yolo_train,height_image,width_image):
     x_center, y_center, w_bbox, h_bbox = coord_yolo_train
@@ -66,7 +74,7 @@ def show_image(image_labeled):
     cv2.imshow("image",image_labeled)
     key = cv2.waitKey(TIME_WAIT)
     if key == ord("q"):
-       quit()
+        quit()
 
 for index in range(len(IMAGENAMES_GROUNDTRUTH)):
     imagename = IMAGENAMES_GROUNDTRUTH[index]
@@ -81,18 +89,23 @@ for index in range(len(IMAGENAMES_GROUNDTRUTH)):
         info_groundtruth = f.read().splitlines()
     bboxes_groundtruth = []
     labels_groundtruth = []
+    plates_groundtruth = []
     for bbox in info_groundtruth:
         bbox = bbox.split()
         label = int(bbox[0])
         #label = 0
         bboxes_groundtruth.append([float(c) for c in bbox[1:5]])
         labels_groundtruth.append(label)
+        if include_plate:
+            try:  plates_groundtruth.append(bbox[7])
+            except:  include_plate = False
 
     with open(textname_prediction) as f:
          info_prediction = f.read().splitlines()
     bboxes_prediction = []
     labels_prediction = []
     scores_prediction = []
+    plates_prediction = []
     for bbox in info_prediction:
         bbox = bbox.split()
         label      = int(float(bbox[0]))
@@ -102,12 +115,24 @@ for index in range(len(IMAGENAMES_GROUNDTRUTH)):
             bboxes_prediction.append([float(c) for c in bbox[1:5]])
             labels_prediction.append(label)
             scores_prediction.append(confidence)
+            if include_plate:
+                try:
+                    if float(bbox[6]) >=THRESH_CONFIDENCE_PLATE:
+                        plates_prediction.append(bbox[7])
+                except:  include_plate = False
 
     metric.update(bboxes_prediction=bboxes_prediction,
                   labels_prediction=labels_prediction,
                   scores_prediction=scores_prediction,
                   bboxes_groundtruth=bboxes_groundtruth,
                   labels_groundtruth=labels_groundtruth)
+
+    if include_plate:
+        lp_metric.update(plates_groundtruth,
+                         plates_prediction,
+                         metric.matched,
+                         metric.unmatched_groundtruth,
+                         metric.unmatched_prediction)
 
     if not DRAW:
         continue
@@ -236,3 +261,6 @@ print
 metric.get_confusion(thresh_confidence=THRESH_CONFIDENCE,
                      thresh_IOU=THRESH_IOU_CONFUSION,
                      conclude=True)
+print
+if include_plate:
+    lp_metric.get_accuracy()

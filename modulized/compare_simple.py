@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import os
 from progressbar import ProgressBar
-from module import labels_module, metric_module
+from module import metric_module
 
 # settings
 
@@ -27,14 +27,6 @@ NUMBER_CLASSES = len(NAMES_CLASS)
 
 ###
 print("# of data: %d"%len(IMAGENAMES_GROUNDTRUTH))
-
-label_generator = labels_module.LabelGenerator(number_color = NUMBER_CLASSES+1)
-image = cv2.imread(IMAGENAMES_GROUNDTRUTH[0])
-height_image, width_image = image.shape[:2]
-label_generator.get_legend(size=3,
-                           names_class=NAMES_CLASS,
-                           height_image=height_image,
-                           width_image=width_image)
 
 metric = metric_module.ObjectDetectionMetric(names_class=NAMES_CLASS,
                                              check_class_first=False)

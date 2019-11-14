@@ -6,7 +6,7 @@ from module import labels_module, metric_module
 
 # settings
 
-DIRNAME_TEST = "compare_coco80/darknet_train_yolov3_spp_608/test000"
+DIRNAME_TEST = "compare_coco80/darknet_train_yolov2_tiny_416/test000"
 DIRNAME_PREDICTION = os.path.join(DIRNAME_TEST,"labels_prediction")
 FILENAME_GROUNDTRUTH = os.path.join(DIRNAME_TEST,"test.txt")
 
@@ -21,8 +21,8 @@ THRESH_CONFIDENCE      = 0.1
 THRESH_IOU_CONFUSION   = 0.5
 THRESH_CONFIDENCE_DRAW = 0.1
 SCALE_REDUCTION = 1.0
-SHOW_FALSE = 0
-SHOW_TOTAL = 0
+SHOW_FALSE = 1
+SHOW_TOTAL = 1
 TIME_WAIT  = 0
 SAVE_FALSE = 0
 SAVE_TOTAL = 0
@@ -237,6 +237,6 @@ print
 metric.get_mAP(type_mAP="COCO",
                conclude=True)
 #print
-#metric.get_confusion(thresh_confidence=THRESH_CONFIDENCE,
-#                     thresh_IOU=THRESH_IOU_CONFUSION,
-#                     conclude=True)
+metric.get_confusion(thresh_confidence=THRESH_CONFIDENCE,
+                     thresh_IOU=THRESH_IOU_CONFUSION,
+                     conclude=True)
