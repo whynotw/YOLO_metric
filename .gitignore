@@ -2,10 +2,8 @@
 *.dSYM
 *.csv
 *.out
-*.png
 *.so
 mnist/
-data/
 caffe/
 grasp/
 images/
